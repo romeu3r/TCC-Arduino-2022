@@ -9,7 +9,9 @@
 LiquidCrystal_I2C lcd(endereco, colunas, linhas);  //Dados referentes ao LCD.
 DHT dht(SENSOR, TIPO);                             //Dados para o DHT
 
-int maxHumidade = 70;
+int buz = 3;
+int avLed = 12;
+int maxHumidade = 80;
 
 void setup() {
   Serial.begin(9600);
@@ -18,9 +20,12 @@ void setup() {
   lcd.clear();
   lcd.backlight();
 
+  pinMode(avLed, OUTPUT);
+  pinMode(buz, OUTPUT);
+
   lcd.setCursor(0, 0);
   lcd.print(F("Inicializando..."));
-  lcd.setCursor(2, 0);
+  lcd.setCursor(0, 1);
   lcd.print(F("Prog. com Arduino"));
 
   Serial.println(F(" Inicializando Umidificador Inteligente:"));
@@ -30,10 +35,10 @@ void setup() {
 }
 
 void loop() {
-  float h = dht.readHumidity();     //Ler Umidade
-  float t = dht.readTemperature();  //Ler Temperatura
+  float h = dht.readHumidity();   //Ler Umidade
+  int t = dht.readTemperature();  //Ler Temperatura
 
-  if (false) defensiva();
+  if (isnan(h) || isnan(t)) defensiva();
   else {
     if (h <= maxHumidade) {
       ligar(h, t);
@@ -52,24 +57,36 @@ void loop() {
 }
 
 void defensiva() {
+  lcd.clear();
+  lcd.setCursor(3, 0);  //Coloca o cursor na coluna 3 da linha 0 do LCD.
+  lcd.print(F("DESLIGADO"));
+  lcd.setCursor(0, 1);
+  lcd.print(F("Falha na leitura"));
+  digitalWrite(avLed, HIGH);
+
+  tone(buz, 261, 250);
+  delay(250);
+  noTone(buz);
   Serial.print("Defensiva");
 }
 
-void ligar(float h, float t) {
+void ligar(int h, int t) {
+  digitalWrite(avLed, LOW);
   digitalWrite(RELE, HIGH);
   lcd.clear();
-  lcd.setCursor(4, 0);                           //Coloca o cursor na coluna 4 da linha 0 do LCD.
+  lcd.setCursor(5, 0);                           //Coloca o cursor na coluna 4 da linha 0 do LCD.
   lcd.print(F("LIGADO"));                        //Imprime o texto no LCD
   lcd.setCursor(0, 1);                           //Coloca o cursor na coluna 0 da linha 1 do LCD.
   lcd.print(F("Temp:"));                         //Imprime o texto no LCD
   lcd.print(t);                                  //Imprime o texto no LCD
-  lcd.print(F("umid:"));                         //Imprime o texto no LCD
+  lcd.print(F(" umid:"));                        //Imprime o texto no LCD
   lcd.print(h);                                  //Imprime o texto no LCD
   lcd.print(F("%"));                             //Imprime o texto no LCD
   Serial.print(F(" UMIDIFICADOR DESLIGADO: "));  //Serial Display
 }
 
-void desligar(float h, float t) {
+void desligar(int h, int t) {
+  digitalWrite(avLed, LOW);
   digitalWrite(RELE, LOW);
   lcd.clear();
   lcd.setCursor(3, 0);                           //Coloca o cursor na coluna 3 da linha 0 do LCD.
@@ -77,7 +94,7 @@ void desligar(float h, float t) {
   lcd.setCursor(0, 1);                           //Coloca o cursor na coluna 0 da linha 1 do LCD.
   lcd.print(F("Temp:"));                         //Imprime o texto no LCD
   lcd.print(t);                                  //Imprime o texto no LCD
-  lcd.print(F("umid:"));                         //Imprime o texto no LCD
+  lcd.print(F(" umid:"));                        //Imprime o texto no LCD
   lcd.print(h);                                  //Imprime o texto no LCD
   lcd.print(F("%"));                             //Imprime o texto no LCD
   Serial.print(F(" UMIDIFICADOR DESLIGADO: "));  //Serial Display
